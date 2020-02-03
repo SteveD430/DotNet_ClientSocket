@@ -12,14 +12,16 @@ namespace ClientSocket
         /*
          * args[0] - IP Address of Socket Server
          * args[1] - Port for socket server
+         * 
          * args[2] - Full path for outputfile. Note; Contents will be over-written
          */
         static void Main(string[] args)
         {
-            const int MAX_BYTES_READ = 250;
-            const int BYES_RECV_BUF_LEN = 500;
+            const int MAX_BYTES_READ = 25000;
+            const int BYTES_RECV_BUF_LEN = MAX_BYTES_READ * 2;
+            const int MONITOR_RECV = 10000;
 
-            Byte[] bytesReceived = new Byte[BYES_RECV_BUF_LEN];
+            Byte[] bytesReceived = new Byte[BYTES_RECV_BUF_LEN];
             Stopwatch stopWatch = new Stopwatch();
 
             IPAddress iPAddress = IPAddress.Parse(args[0]);
@@ -34,22 +36,21 @@ namespace ClientSocket
                 int missedErrors = 0;
                 int dataPoint = 0;
                 int dataPointCt = 0;
+                int monitorPointCt = 0;
                 int bytes = 0;
                 int bytesRead = 0;
                 bool isFirstDataPoint = true;
                 int firstDataPoint = 0;
                 int previousDataPoint = 0;
                 const int STOP_LISTENING_AT = 1000000;
+
+                stopWatch.Start();
                 do
                 {
                     try
                     {
                         bytesRead = tempSocket.Receive(bytesReceived, retain, MAX_BYTES_READ, 0);
                         bytes = bytesRead + retain;
-                        if (isFirstDataPoint)
-                        {
-                            stopWatch.Start();
-                        }
                         
                         int k = 0;
                         int[] data = new int[100];
@@ -73,8 +74,13 @@ namespace ClientSocket
                                 dataPoint = dataPoint * 85 + (bytesReceived[k + j] - 33);
                             }
                             dataPointCt++;
+                            monitorPointCt++;
                             k = k + 5;
-                            // Console.Write($"{dataPoint.ToString()} ");
+                            if (monitorPointCt >= MONITOR_RECV)
+                            {
+                                Console.Write(".");
+                                monitorPointCt = 0;
+                            }
                             file.Write($"{dataPoint.ToString()} ");
                             if (isFirstDataPoint)
                             {
